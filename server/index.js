@@ -24,7 +24,7 @@ app.use(limiter);
 // CORS 설정
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-domain.com'] 
+    ? true // 프로덕션에서는 모든 origin 허용 (같은 도메인)
     : ['http://localhost:3000'],
   credentials: true
 }));

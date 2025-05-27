@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+// Vercel 배포 환경을 고려한 API URL 설정
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? '' // 프로덕션에서는 같은 도메인 사용
+  : (process.env.REACT_APP_API_URL || 'http://localhost:3001');
 
 export interface Prompts {
   analysisSystem: string;

@@ -1,7 +1,10 @@
 import axios from 'axios';
 import { AnalysisRequest, AnalysisResult, ApiResponse } from '../types';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+// Vercel 배포 환경을 고려한 API URL 설정
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? '' // 프로덕션에서는 같은 도메인 사용
+  : (process.env.REACT_APP_API_URL || 'http://localhost:3001');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
