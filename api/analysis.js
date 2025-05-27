@@ -62,13 +62,38 @@ export default async function handler(req, res) {
       // 이미지가 있으면 OCR 처리
       if (req.file) {
         try {
-          const extractedText = await extractTextFromImage(req.file.buffer);
-          finalAdText = extractedText;
+          console.log('이미지 OCR 처리 시작, 파일 크기:', req.file.size);
+          
+          // 파일 크기 제한 (5MB)
+          if (req.file.size > 5 * 1024 * 1024) {
+            return res.status(400).json({
+              success: false,
+              error: '이미지 파일 크기는 5MB 이하여야 합니다.'
+            });
+          }
+
+          // OCR 처리에 타임아웃 설정 (25초)
+          const ocrPromise = extractTextFromImage(req.file.buffer);
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('OCR 처리 시간 초과')), 25000)
+          );
+
+          finalAdText = await Promise.race([ocrPromise, timeoutPromise]);
+          
+          if (!finalAdText || finalAdText.trim().length < 10) {
+            return res.status(400).json({
+              success: false,
+              error: '이미지에서 충분한 텍스트를 추출할 수 없습니다. 더 선명한 이미지를 사용해주세요.'
+            });
+          }
+
+          console.log('OCR 처리 완료, 텍스트 길이:', finalAdText.length);
+          
         } catch (ocrError) {
           console.error('OCR 처리 오류:', ocrError);
           return res.status(400).json({
             success: false,
-            error: 'OCR 처리 중 오류가 발생했습니다.'
+            error: 'OCR 처리 중 오류가 발생했습니다. 이미지가 선명한지 확인하거나 텍스트로 직접 입력해주세요.'
           });
         }
       }

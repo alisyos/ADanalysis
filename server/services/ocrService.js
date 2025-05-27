@@ -1,7 +1,47 @@
 const Tesseract = require('tesseract.js');
 
 /**
- * 이미지에서 텍스트를 추출하는 OCR 서비스
+ * 이미지 버퍼에서 텍스트를 추출하는 OCR 서비스 (Vercel 환경 최적화)
+ * @param {Buffer} imageBuffer - 이미지 파일 버퍼
+ * @returns {Promise<string>} 추출된 텍스트
+ */
+async function extractTextFromImage(imageBuffer) {
+  try {
+    console.log('OCR 처리 시작 (버퍼 크기:', imageBuffer.length, 'bytes)');
+    
+    const { data: { text } } = await Tesseract.recognize(
+      imageBuffer,
+      'kor+eng', // 한국어 + 영어 인식
+      {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            console.log(`OCR 진행률: ${Math.round(m.progress * 100)}%`);
+          }
+        },
+        // Vercel 환경 최적화 설정
+        corePath: 'https://unpkg.com/tesseract.js-core@2.2.0/tesseract-core.wasm.js',
+        workerPath: 'https://unpkg.com/tesseract.js@2.1.5/dist/worker.min.js',
+        langPath: 'https://tessdata.projectnaptha.com/4.0.0'
+      }
+    );
+
+    // 텍스트 정제
+    const cleanedText = text
+      .replace(/\n+/g, '\n') // 연속된 줄바꿈 정리
+      .replace(/\s+/g, ' ') // 연속된 공백 정리
+      .trim();
+
+    console.log('OCR 완료. 추출된 텍스트 길이:', cleanedText.length);
+    
+    return cleanedText;
+  } catch (error) {
+    console.error('OCR 처리 오류:', error);
+    throw new Error(`OCR 처리 실패: ${error.message}`);
+  }
+}
+
+/**
+ * 이미지에서 텍스트를 추출하는 OCR 서비스 (기존 로컬 환경용)
  * @param {string} imagePath - 이미지 파일 경로
  * @returns {Promise<string>} 추출된 텍스트
  */
@@ -85,6 +125,7 @@ function extractAdInfo(text) {
 }
 
 module.exports = {
+  extractTextFromImage,
   processImage,
   extractAdInfo
 }; 

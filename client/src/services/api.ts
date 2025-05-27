@@ -54,7 +54,12 @@ export const analyzeAds = async (request: AnalysisRequest): Promise<AnalysisResu
       formData.append('image', request.image);
     }
 
-    const response = await api.post<ApiResponse<AnalysisResult>>('/analysis', formData, {
+    // 환경에 따라 다른 엔드포인트 사용
+    const endpoint = process.env.NODE_ENV === 'production' 
+      ? '/analysis' 
+      : '/api/analysis/analyze';
+
+    const response = await api.post<ApiResponse<AnalysisResult>>(endpoint, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -86,7 +91,12 @@ export const analyzeAds = async (request: AnalysisRequest): Promise<AnalysisResu
  */
 export const checkServerStatus = async (): Promise<any> => {
   try {
-    const response = await api.get('/analysis');
+    // 환경에 따라 다른 엔드포인트 사용
+    const endpoint = process.env.NODE_ENV === 'production' 
+      ? '/analysis' 
+      : '/api/analysis/status';
+      
+    const response = await api.get(endpoint);
     return response.data;
   } catch (error) {
     console.error('서버 상태 확인 오류:', error);
