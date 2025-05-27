@@ -10,6 +10,7 @@ export interface Ad {
   url: string;
   company: string;
   rank: number;
+  tags: string[];
   evaluation: AdEvaluation;
 }
 

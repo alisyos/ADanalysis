@@ -38,6 +38,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API 라우트
 app.use('/api/analysis', analysisRoutes);
+app.use('/api/admin', require('./routes/admin'));
 
 // 헬스 체크
 app.get('/health', (req, res) => {
