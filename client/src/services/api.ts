@@ -8,7 +8,7 @@ const API_BASE_URL = process.env.NODE_ENV === 'production'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 60000, // 60초 타임아웃 (AI 처리 시간 고려)
+  timeout: 120000, // 120초 타임아웃 (GPT Vision 처리 시간 고려)
 });
 
 // 요청 인터셉터

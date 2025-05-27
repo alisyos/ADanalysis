@@ -226,10 +226,10 @@ async function analyzeAds({ keyword, companyName, adText, imageBuffer }) {
     }
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // Vision 지원 모델
+      model: "gpt-4.1", // Vision 지원 모델
       messages: messages,
-      max_tokens: 4000,
-      temperature: 0.3
+      max_tokens: 3000, // 토큰 수 줄여서 처리 시간 단축
+      temperature: 0.1 // 더 일관된 결과를 위해 낮춤
     });
 
     const analysisResult = parseGPTAnalysisResult(response.choices[0].message.content, keyword, companyName);
