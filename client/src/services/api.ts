@@ -3,7 +3,7 @@ import { AnalysisRequest, AnalysisResult, ApiResponse } from '../types';
 
 // Vercel 배포 환경을 고려한 API URL 설정
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? '' // 프로덕션에서는 같은 도메인 사용
+  ? '/api' // 프로덕션에서는 Vercel API Routes 사용
   : (process.env.REACT_APP_API_URL || 'http://localhost:3001');
 
 const api = axios.create({
@@ -54,7 +54,7 @@ export const analyzeAds = async (request: AnalysisRequest): Promise<AnalysisResu
       formData.append('image', request.image);
     }
 
-    const response = await api.post<ApiResponse<AnalysisResult>>('/analysis/analyze', formData, {
+    const response = await api.post<ApiResponse<AnalysisResult>>('/analysis', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -86,7 +86,7 @@ export const analyzeAds = async (request: AnalysisRequest): Promise<AnalysisResu
  */
 export const checkServerStatus = async (): Promise<any> => {
   try {
-    const response = await api.get('/analysis/status');
+    const response = await api.get('/analysis');
     return response.data;
   } catch (error) {
     console.error('서버 상태 확인 오류:', error);

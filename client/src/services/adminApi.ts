@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Vercel 배포 환경을 고려한 API URL 설정
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? '' // 프로덕션에서는 같은 도메인 사용
+  ? '/api' // 프로덕션에서는 Vercel API Routes 사용
   : (process.env.REACT_APP_API_URL || 'http://localhost:3001');
 
 export interface Prompts {
@@ -21,7 +21,7 @@ export interface AdminApiResponse<T> {
 // 프롬프트 조회
 export const getPrompts = async (): Promise<AdminApiResponse<Prompts>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/admin/prompts`);
+    const response = await axios.get(`${API_BASE_URL}/admin`);
     return response.data;
   } catch (error: any) {
     console.error('프롬프트 조회 오류:', error);
@@ -35,7 +35,7 @@ export const getPrompts = async (): Promise<AdminApiResponse<Prompts>> => {
 // 프롬프트 저장
 export const savePrompts = async (prompts: Prompts): Promise<AdminApiResponse<void>> => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/api/admin/prompts`, { prompts });
+    const response = await axios.put(`${API_BASE_URL}/admin`, { prompts });
     return response.data;
   } catch (error: any) {
     console.error('프롬프트 저장 오류:', error);
@@ -49,7 +49,7 @@ export const savePrompts = async (prompts: Prompts): Promise<AdminApiResponse<vo
 // 프롬프트 초기화
 export const resetPrompts = async (): Promise<AdminApiResponse<Prompts>> => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/api/admin/prompts/reset`);
+    const response = await axios.post(`${API_BASE_URL}/admin`);
     return response.data;
   } catch (error: any) {
     console.error('프롬프트 초기화 오류:', error);
