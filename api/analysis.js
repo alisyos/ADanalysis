@@ -1,6 +1,5 @@
 const multer = require('multer');
 const { analyzeAds } = require('../server/services/adAnalysisService');
-const { extractTextFromImage } = require('../server/services/ocrService');
 
 // Multer 설정
 const upload = multer({
@@ -57,59 +56,36 @@ export default async function handler(req, res) {
         });
       }
 
-      let finalAdText = adText;
-
-      // 이미지가 있으면 OCR 처리
-      if (req.file) {
-        try {
-          console.log('이미지 OCR 처리 시작, 파일 크기:', req.file.size);
-          
-          // 파일 크기 제한 (5MB)
-          if (req.file.size > 5 * 1024 * 1024) {
-            return res.status(400).json({
-              success: false,
-              error: '이미지 파일 크기는 5MB 이하여야 합니다.'
-            });
-          }
-
-          // OCR 처리에 타임아웃 설정 (25초)
-          const ocrPromise = extractTextFromImage(req.file.buffer);
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('OCR 처리 시간 초과')), 25000)
-          );
-
-          finalAdText = await Promise.race([ocrPromise, timeoutPromise]);
-          
-          if (!finalAdText || finalAdText.trim().length < 10) {
-            return res.status(400).json({
-              success: false,
-              error: '이미지에서 충분한 텍스트를 추출할 수 없습니다. 더 선명한 이미지를 사용해주세요.'
-            });
-          }
-
-          console.log('OCR 처리 완료, 텍스트 길이:', finalAdText.length);
-          
-        } catch (ocrError) {
-          console.error('OCR 처리 오류:', ocrError);
-          return res.status(400).json({
-            success: false,
-            error: 'OCR 처리 중 오류가 발생했습니다. 이미지가 선명한지 확인하거나 텍스트로 직접 입력해주세요.'
-          });
-        }
-      }
-
-      if (!finalAdText) {
+      // 텍스트 또는 이미지 중 하나는 필수
+      if (!adText && !req.file) {
         return res.status(400).json({
           success: false,
           error: '광고 텍스트 또는 이미지가 필요합니다.'
         });
       }
 
-      // 광고 분석 수행
+      // 이미지가 있는 경우 파일 크기 확인
+      if (req.file && req.file.size > 10 * 1024 * 1024) {
+        return res.status(400).json({
+          success: false,
+          error: '이미지 파일 크기는 10MB 이하여야 합니다.'
+        });
+      }
+
+      console.log('분석 시작:', {
+        keyword,
+        companyName,
+        hasText: !!adText,
+        hasImage: !!req.file,
+        imageSize: req.file?.size
+      });
+
+      // 광고 분석 수행 (GPT Vision API 사용)
       const result = await analyzeAds({
         keyword,
         companyName,
-        adText: finalAdText
+        adText,
+        imageBuffer: req.file?.buffer
       });
 
       return res.json({

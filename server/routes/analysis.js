@@ -3,29 +3,12 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { analyzeAds } = require('../services/adAnalysisService');
-const { processImage } = require('../services/ocrService');
 
 const router = express.Router();
 
-// 업로드 디렉토리 생성
-const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Multer 설정
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
+// Multer 설정 (메모리 저장소 사용)
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB
   },
@@ -54,46 +37,32 @@ router.post('/analyze', upload.single('image'), async (req, res) => {
       });
     }
 
-    let processedText = adText || '';
-
-    // 이미지가 업로드된 경우 OCR 처리
-    if (req.file) {
-      try {
-        console.log('이미지 OCR 처리 시작:', req.file.filename);
-        processedText = await processImage(req.file.path);
-        
-        // 처리 완료 후 파일 삭제
-        fs.unlink(req.file.path, (err) => {
-          if (err) console.error('파일 삭제 오류:', err);
-        });
-      } catch (ocrError) {
-        console.error('OCR 처리 오류:', ocrError);
-        return res.status(500).json({
-          error: 'OCR 처리 중 오류가 발생했습니다.',
-          details: ocrError.message
-        });
-      }
-    }
-
-    if (!processedText.trim()) {
+    // 텍스트 또는 이미지 중 하나는 필수
+    if (!adText && !req.file) {
       return res.status(400).json({
         error: '광고 텍스트 또는 이미지가 필요합니다.'
       });
     }
 
-    console.log('광고 분석 시작:', { keyword, companyName, textLength: processedText.length });
+    console.log('광고 분석 시작:', {
+      keyword,
+      companyName,
+      hasText: !!adText,
+      hasImage: !!req.file,
+      imageSize: req.file?.size
+    });
 
-    // 광고 분석 수행
+    // 광고 분석 수행 (GPT Vision API 사용)
     const analysisResult = await analyzeAds({
       keyword,
       companyName,
-      adText: processedText
+      adText,
+      imageBuffer: req.file?.buffer
     });
 
     res.json({
       success: true,
-      data: analysisResult,
-      processedText: processedText.substring(0, 200) + '...' // 처리된 텍스트 일부만 반환
+      data: analysisResult
     });
 
   } catch (error) {
@@ -111,7 +80,7 @@ router.get('/status', (req, res) => {
     status: 'active',
     services: {
       openai: !!process.env.OPENAI_API_KEY,
-      ocr: true
+      vision: true
     }
   });
 });

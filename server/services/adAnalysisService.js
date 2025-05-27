@@ -115,42 +115,119 @@ function generateDefaultSuggestions(keyword, companyName) {
 }
 
 /**
- * GPT 기반 통합 광고 분석 함수
+ * GPT 기반 통합 광고 분석 함수 (이미지 지원)
  * @param {Object} params - 분석 파라미터
  * @returns {Promise<Object>} 분석 결과
  */
-async function analyzeAds({ keyword, companyName, adText }) {
+async function analyzeAds({ keyword, companyName, adText, imageBuffer }) {
   try {
     console.log('GPT 기반 통합 광고 분석 시작...');
     
     // OpenAI가 연결되지 않은 경우 기본 분석 사용
     if (!openai) {
       console.log('OpenAI 미연결로 기본 분석 수행');
-      return await analyzeAdsBasic(keyword, companyName, adText);
+      return await analyzeAdsBasic(keyword, companyName, adText || '이미지 분석 불가');
     }
 
     // 최신 프롬프트 설정 로드
     delete require.cache[require.resolve('../config/prompts')];
     const currentPrompts = require('../config/prompts');
     
-    const prompt = currentPrompts.analysisUser
-      .replace('{keyword}', keyword)
-      .replace('{companyName}', companyName)
-      .replace('{adText}', adText)
-      .replace('{companyName}', companyName); // 두 번째 occurrence
+    let messages = [
+      {
+        role: "system",
+        content: currentPrompts.analysisSystem
+      }
+    ];
+
+    // 이미지가 있는 경우 Vision API 사용
+    if (imageBuffer) {
+      const base64Image = imageBuffer.toString('base64');
+      const imagePrompt = `검색키워드: "${keyword}"
+자사명: "${companyName}"
+
+첨부된 이미지는 네이버 검색광고 결과 화면입니다. 이미지를 분석하여 다음 JSON 형식으로 응답해주세요:
+
+{
+  "totalAds": [총 광고 수],
+  "companyAnalysis": {
+    "company": "${companyName}",
+    "title": "[자사 광고 제목]",
+    "description": "[자사 광고 설명]",
+    "url": "[자사 광고 URL]",
+    "rank": [자사 광고 순위, 없으면 null],
+    "tags": ["태그1", "태그2", "태그3"],
+    "evaluation": {
+      "score": [0-100점],
+      "grade": "[A/B/C/D]",
+      "feedback": ["평가 피드백1", "평가 피드백2", ...]
+    }
+  },
+  "competitorAnalysis": [
+    {
+      "company": "[경쟁사명1]",
+      "title": "[광고 제목]",
+      "description": "[광고 설명]",
+      "url": "[광고 URL]",
+      "rank": [순위],
+      "tags": ["태그1", "태그2", "태그3"],
+      "evaluation": {
+        "score": [0-100점],
+        "grade": "[A/B/C/D]",
+        "feedback": ["평가 피드백1", "평가 피드백2", ...]
+      }
+    }
+  ],
+  "adSuggestions": [
+    {
+      "title": "[제안 광고 제목1]",
+      "description": "[제안 광고 설명1]",
+      "improvement": "[개선 포인트1]"
+    }
+  ]
+}
+
+분석 기준:
+1. 자사 광고가 이미지에 없으면 companyAnalysis를 null로 설정
+2. 경쟁사는 상위 5개까지만 분석
+3. 광고 평가는 키워드 관련성, 제목 효과성, 설명 완성도, 차별화 요소를 종합
+4. 광고 소재 제안은 경쟁사 분석을 바탕으로 차별화된 내용으로 작성
+5. tags는 각 광고 하단에 있는 키워드들을 추출
+6. 응답은 반드시 유효한 JSON 형식이어야 함`;
+
+      messages.push({
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: imagePrompt
+          },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:image/jpeg;base64,${base64Image}`,
+              detail: "high"
+            }
+          }
+        ]
+      });
+    } else {
+      // 텍스트만 있는 경우 기존 방식 사용
+      const prompt = currentPrompts.analysisUser
+        .replace('{keyword}', keyword)
+        .replace('{companyName}', companyName)
+        .replace('{adText}', adText)
+        .replace('{companyName}', companyName); // 두 번째 occurrence
+
+      messages.push({
+        role: "user",
+        content: prompt
+      });
+    }
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4.1",
-      messages: [
-        {
-          role: "system",
-          content: currentPrompts.analysisSystem
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
+      model: "gpt-4o", // Vision 지원 모델
+      messages: messages,
       max_tokens: 4000,
       temperature: 0.3
     });
@@ -167,7 +244,7 @@ async function analyzeAds({ keyword, companyName, adText }) {
   } catch (error) {
     console.error('GPT 광고 분석 오류:', error);
     // GPT 오류 시 기본 분석으로 폴백
-    return await analyzeAdsBasic(keyword, companyName, adText);
+    return await analyzeAdsBasic(keyword, companyName, adText || '이미지 분석 불가');
   }
 }
 
