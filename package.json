@@ -1,0 +1,19 @@
+{
+  "name": "ad-analysis-system",
+  "version": "1.0.0",
+  "description": "검색광고 경쟁력 분석 시스템",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "keywords": ["광고분석", "검색광고", "경쟁분석"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+} 
