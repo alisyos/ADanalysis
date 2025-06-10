@@ -35,6 +35,7 @@ export interface AnalysisRequest {
   companyName: string;
   adText?: string;
   image?: File;
+  additionalInfo?: string;
 }
 
 export interface ApiResponse<T> {

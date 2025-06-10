@@ -15,6 +15,7 @@ const AnalysisForm: React.FC<AnalysisFormProps> = ({ onSubmit, loading, hasResul
   const [adText, setAdText] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [inputType, setInputType] = useState<'text' | 'image'>('text');
+  const [additionalInfo, setAdditionalInfo] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -60,6 +61,10 @@ const AnalysisForm: React.FC<AnalysisFormProps> = ({ onSubmit, loading, hasResul
       request.image = selectedFile!;
     }
 
+    if (additionalInfo.trim()) {
+      request.additionalInfo = additionalInfo.trim();
+    }
+
     onSubmit(request);
   };
 
@@ -100,6 +105,7 @@ const AnalysisForm: React.FC<AnalysisFormProps> = ({ onSubmit, loading, hasResul
     setAdText('');
     setSelectedFile(null);
     setInputType('text');
+    setAdditionalInfo('');
     setErrors({});
     if (onNewAnalysis) {
       onNewAnalysis();
@@ -159,6 +165,22 @@ const AnalysisForm: React.FC<AnalysisFormProps> = ({ onSubmit, loading, hasResul
               </p>
             )}
           </div>
+        </div>
+
+        {/* 추가정보 입력 */}
+        <div>
+          <label htmlFor="additionalInfo" className="block text-sm font-medium text-gray-700 mb-2">
+            추가 정보 (선택사항)
+          </label>
+          <textarea
+            id="additionalInfo"
+            value={additionalInfo}
+            onChange={(e) => setAdditionalInfo(e.target.value)}
+            rows={3}
+            className="input-field"
+            placeholder="광고 문구 추천을 위한 참고 정보를 입력해주세요.&#10;(ex. 타겟은 30대 남성, 가격보다 성능을 중시. 경쟁사는 A사, 톤은 명확하고 자신감 있게.)"
+            disabled={loading}
+          />
         </div>
 
         {/* 입력 방식 선택 */}

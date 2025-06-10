@@ -44,7 +44,7 @@ function App() {
             <div className="flex items-center">
               <BarChart3 className="w-8 h-8 text-primary-600 mr-3" />
               <div>
-                <h1 className="text-xl font-bold text-gray-900">검색광고 경쟁력 분석 시스템</h1>
+                <h1 className="text-xl font-bold text-gray-900">파워링크 광고 문구 분석 및 제안</h1>
                 <p className="text-sm text-gray-500">AI 기반 광고 분석 및 소재 제안</p>
               </div>
             </div>
@@ -91,9 +91,9 @@ function App() {
           )}
 
           {/* 좌우 분할 레이아웃 */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8 min-h-[calc(100vh-200px)]">
-            {/* 좌측: 입력 폼 */}
-            <div className="overflow-y-auto">
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 lg:gap-8 min-h-[calc(100vh-200px)]">
+            {/* 좌측: 입력 폼 (2/5) */}
+            <div className="xl:col-span-2 overflow-y-auto">
               <AnalysisForm 
                 onSubmit={handleAnalysisSubmit} 
                 loading={loading} 
@@ -102,8 +102,8 @@ function App() {
               />
             </div>
 
-            {/* 우측: 결과 출력 */}
-            <div className="overflow-y-auto">
+            {/* 우측: 결과 출력 (3/5) */}
+            <div className="xl:col-span-3 overflow-y-auto">
               {result ? (
                 <AnalysisResult result={result} />
               ) : (
@@ -145,7 +145,7 @@ function App() {
       <footer className="bg-white border-t border-gray-200 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-500 text-sm">
-            <p>© 2024 검색광고 경쟁력 분석 시스템. AI 기반 광고 분석 서비스.</p>
+            <p>© 2024 파워링크 광고 문구 분석 및 제안. AI 기반 광고 분석 서비스.</p>
             <p className="mt-2">
               네이버 검색광고 데이터를 분석하여 경쟁력 있는 광고 소재를 제안합니다.
             </p>
