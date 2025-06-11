@@ -54,6 +54,10 @@ export const analyzeAds = async (request: AnalysisRequest): Promise<AnalysisResu
       formData.append('image', request.image);
     }
 
+    if (request.additionalInfo) {
+      formData.append('additionalInfo', request.additionalInfo);
+    }
+
     // 환경에 따라 다른 엔드포인트 사용
     const endpoint = process.env.NODE_ENV === 'production' 
       ? '/analysis' 

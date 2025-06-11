@@ -46,7 +46,7 @@ export default async function handler(req, res) {
         });
       });
 
-      const { keyword, companyName, adText } = req.body;
+      const { keyword, companyName, adText, additionalInfo } = req.body;
 
       // 입력값 검증
       if (!keyword || !companyName) {
@@ -77,6 +77,7 @@ export default async function handler(req, res) {
         companyName,
         hasText: !!adText,
         hasImage: !!req.file,
+        hasAdditionalInfo: !!additionalInfo,
         imageSize: req.file?.size
       });
 
@@ -85,6 +86,7 @@ export default async function handler(req, res) {
         keyword,
         companyName,
         adText,
+        additionalInfo,
         imageBuffer: req.file?.buffer
       });
 

@@ -28,7 +28,7 @@ const upload = multer({
 // 광고 분석 API
 router.post('/analyze', upload.single('image'), async (req, res) => {
   try {
-    const { keyword, companyName, adText } = req.body;
+    const { keyword, companyName, adText, additionalInfo } = req.body;
 
     // 입력값 검증
     if (!keyword || !companyName) {
@@ -49,6 +49,7 @@ router.post('/analyze', upload.single('image'), async (req, res) => {
       companyName,
       hasText: !!adText,
       hasImage: !!req.file,
+      hasAdditionalInfo: !!additionalInfo,
       imageSize: req.file?.size
     });
 
@@ -57,6 +58,7 @@ router.post('/analyze', upload.single('image'), async (req, res) => {
       keyword,
       companyName,
       adText,
+      additionalInfo,
       imageBuffer: req.file?.buffer
     });
 

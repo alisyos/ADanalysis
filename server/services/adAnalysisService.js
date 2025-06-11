@@ -82,10 +82,11 @@ function evaluateAdBasic(ad, keyword) {
  * 기본 광고 제안 생성 (AI 실패 시)
  * @param {string} keyword - 검색 키워드
  * @param {string} companyName - 자사명
+ * @param {string} additionalInfo - 추가 정보
  * @returns {Array} 기본 광고 제안
  */
-function generateDefaultSuggestions(keyword, companyName) {
-  return [
+function generateDefaultSuggestions(keyword, companyName, additionalInfo) {
+  const suggestions = [
     {
       title: `${keyword} 전문 ${companyName}`,
       description: `${keyword} 최고 품질, 합리적 가격으로 만나보세요`,
@@ -112,6 +113,13 @@ function generateDefaultSuggestions(keyword, companyName) {
       improvement: '신규 고객 타겟팅으로 신규 유입 증대'
     }
   ];
+
+  // 추가 정보가 있으면 첫 번째 제안에 반영
+  if (additionalInfo && additionalInfo.trim()) {
+    suggestions[0].improvement += ` (추가 정보 반영: ${additionalInfo.substring(0, 50)}${additionalInfo.length > 50 ? '...' : ''})`;
+  }
+
+  return suggestions;
 }
 
 /**
@@ -119,14 +127,14 @@ function generateDefaultSuggestions(keyword, companyName) {
  * @param {Object} params - 분석 파라미터
  * @returns {Promise<Object>} 분석 결과
  */
-async function analyzeAds({ keyword, companyName, adText, imageBuffer }) {
+async function analyzeAds({ keyword, companyName, adText, additionalInfo, imageBuffer }) {
   try {
     console.log('GPT 기반 통합 광고 분석 시작...');
     
     // OpenAI가 연결되지 않은 경우 기본 분석 사용
     if (!openai) {
       console.log('OpenAI 미연결로 기본 분석 수행');
-      return await analyzeAdsBasic(keyword, companyName, adText || '이미지 분석 불가');
+      return await analyzeAdsBasic(keyword, companyName, adText || '이미지 분석 불가', additionalInfo);
     }
 
     // 최신 프롬프트 설정 로드
@@ -143,8 +151,14 @@ async function analyzeAds({ keyword, companyName, adText, imageBuffer }) {
     // 이미지가 있는 경우 Vision API 사용
     if (imageBuffer) {
       const base64Image = imageBuffer.toString('base64');
-      const imagePrompt = `검색키워드: "${keyword}"
-자사명: "${companyName}"
+      let imagePrompt = `검색키워드: "${keyword}"
+자사명: "${companyName}"`;
+
+      if (additionalInfo) {
+        imagePrompt += `\n추가 정보: ${additionalInfo}`;
+      }
+
+      imagePrompt += `
 
 첨부된 이미지는 네이버 검색광고 결과 화면입니다. 이미지를 분석하여 다음 JSON 형식으로 응답해주세요:
 
@@ -191,9 +205,14 @@ async function analyzeAds({ keyword, companyName, adText, imageBuffer }) {
 1. 자사 광고가 이미지에 없으면 companyAnalysis를 null로 설정
 2. 경쟁사는 상위 5개까지만 분석
 3. 광고 평가는 키워드 관련성, 제목 효과성, 설명 완성도, 차별화 요소를 종합
-4. 광고 소재 제안은 경쟁사 분석을 바탕으로 차별화된 내용으로 작성
-5. tags는 각 광고 하단에 있는 키워드들을 추출
-6. 응답은 반드시 유효한 JSON 형식이어야 함`;
+4. 광고 소재 제안은 경쟁사 분석을 바탕으로 차별화된 내용으로 작성`;
+
+      if (additionalInfo) {
+        imagePrompt += `\n5. 광고 소재 제안 시 다음 추가 정보를 반영: ${additionalInfo}`;
+      }
+
+      imagePrompt += `\n6. tags는 각 광고 하단에 있는 키워드들을 추출
+7. 응답은 반드시 유효한 JSON 형식이어야 함`;
 
       messages.push({
         role: "user",
@@ -213,11 +232,26 @@ async function analyzeAds({ keyword, companyName, adText, imageBuffer }) {
       });
     } else {
       // 텍스트만 있는 경우 기존 방식 사용
-      const prompt = currentPrompts.analysisUser
+      let prompt = currentPrompts.analysisUser
         .replace('{keyword}', keyword)
         .replace('{companyName}', companyName)
         .replace('{adText}', adText)
         .replace('{companyName}', companyName); // 두 번째 occurrence
+
+      // additionalInfo가 있으면 프롬프트에 추가
+      if (additionalInfo) {
+        prompt = prompt.replace(
+          '분석 기준:',
+          `추가 정보: ${additionalInfo}
+
+분석 기준:`
+        );
+        
+        prompt = prompt.replace(
+          '4. 광고 소재 제안은 경쟁사 분석을 바탕으로 차별화된 내용으로 작성',
+          `4. 광고 소재 제안은 경쟁사 분석을 바탕으로 차별화된 내용으로 작성하되, 다음 추가 정보를 반영: ${additionalInfo}`
+        );
+      }
 
       messages.push({
         role: "user",
@@ -244,7 +278,7 @@ async function analyzeAds({ keyword, companyName, adText, imageBuffer }) {
   } catch (error) {
     console.error('GPT 광고 분석 오류:', error);
     // GPT 오류 시 기본 분석으로 폴백
-    return await analyzeAdsBasic(keyword, companyName, adText || '이미지 분석 불가');
+    return await analyzeAdsBasic(keyword, companyName, adText || '이미지 분석 불가', additionalInfo);
   }
 }
 
@@ -253,14 +287,15 @@ async function analyzeAds({ keyword, companyName, adText, imageBuffer }) {
  * @param {string} keyword - 검색 키워드
  * @param {string} companyName - 자사명
  * @param {string} adText - 광고 텍스트
+ * @param {string} additionalInfo - 추가 정보
  * @returns {Promise<Object>} 분석 결과
  */
-async function analyzeAdsBasic(keyword, companyName, adText) {
+async function analyzeAdsBasic(keyword, companyName, adText, additionalInfo) {
   try {
     console.log('기본 분석 수행 중...');
     
     // 간단한 기본 분석 결과 반환
-    const adSuggestions = generateDefaultSuggestions(keyword, companyName);
+    const adSuggestions = generateDefaultSuggestions(keyword, companyName, additionalInfo);
     
     return {
       keyword,
@@ -300,7 +335,7 @@ function parseGPTAnalysisResult(content, keyword, companyName) {
       totalAds: result.totalAds || 0,
       companyAnalysis: result.companyAnalysis || null,
       competitorAnalysis: Array.isArray(result.competitorAnalysis) ? result.competitorAnalysis : [],
-      adSuggestions: Array.isArray(result.adSuggestions) ? result.adSuggestions : generateDefaultSuggestions(keyword, companyName)
+      adSuggestions: Array.isArray(result.adSuggestions) ? result.adSuggestions : generateDefaultSuggestions(keyword, companyName, '')
     };
     
   } catch (error) {
@@ -311,7 +346,7 @@ function parseGPTAnalysisResult(content, keyword, companyName) {
       totalAds: 1,
       companyAnalysis: null,
       competitorAnalysis: [],
-      adSuggestions: generateDefaultSuggestions(keyword, companyName)
+      adSuggestions: generateDefaultSuggestions(keyword, companyName, '')
     };
   }
 }
